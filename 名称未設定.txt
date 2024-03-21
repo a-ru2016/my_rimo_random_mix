@@ -1,0 +1,3 @@
+. /Users/naganuma/rimo_random_mix/venv/bin/activate
+cd stable-diffusion-webui
+./webui.sh --api

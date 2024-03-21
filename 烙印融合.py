@@ -2,45 +2,74 @@ import sys
 import json
 import time
 import hashlib
+import os
 
 import numpy as np
 from bayes_opt import BayesianOptimization
 from safetensors.numpy import load_file, save_file
+import glob
+import argparse
 
-sys.path.append('R:/e')
+sys.path.append(os.path.join(os.path.dirname(__file__), './stable-diffusion-anime-tag-benchmark'))
 from common import 上网, 服务器地址
 from 评测多标签 import 评测模型
 
+def setup_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--ver",
+        default="XL",
+        help="モデルバージョン")
+    parser.add_argument(
+        '--amp',
+        default="float16",
+        help='計算精度[float16,float32]')
+    return parser
 
-模型文件夹 = 'R:/stable-diffusion-webui-master/models/Stable-diffusion'
+parser = setup_parser()
+args = parser.parse_args()
 
-a = load_file(f'{模型文件夹}/Rimo.safetensors')
-b = load_file(f'{模型文件夹}/b.safetensors')
-c = load_file(f'{模型文件夹}/c.safetensors')
+if args.amp=="float16":
+    amp = np.float16
+else:
+    amp = np.float32
 
+模型文件夹 = './stable-diffusion-webui/models/Stable-diffusion'
 
-all_k = set(a) & set(b) & set(c)
+tmp = glob.glob("./stable-diffusion-webui/models/Stable-diffusion/*.safetensors")
+model = []
+def load_fp16_file(filename):
+    data = load_file(filename)
+    for k, v in data.items():
+        data[k] = v.astype(amp)
+    return data
+for i in range(len(tmp)):
+    model.append(load_fp16_file(tmp[i]))
 
-记录文件名 = f'记录{int(time.time())}.txt'
+tmp = set(model[0])
+for i in range(len(model)-1):
+    tmp = tmp & set(model[i+1])
+all_k = tmp
+
+记录文件名 = f'Record{int(time.time())}.txt'
 记录 = []
 
 def 融合识别(s: str) -> str:
-    nm = {
-        'x': 'model.diffusion_model.input_blocks.',
-        'y': 'model.diffusion_model.middle_block.',
-        'z': 'model.diffusion_model.output_blocks.',
+    nm={
+        "unet": "model.diffusion_model.",
+        "clip":"conditioner.embedders.",
     }
     for k, v in nm.items():
         if s.startswith(v):
-            n = int(s.removeprefix(v).split('.')[0])
-            return f'{k}_{n//3}'
+            n = s.removeprefix(v)
+            return f'{k}_{n}'
     return 'r'
 
 
 def 名字(kw: dict):
     s = sorted(kw.items())
     md5 = hashlib.md5(str(''.join(f'{k}{v:.2f}' for k, v in s)).encode()).hexdigest()
-    return f'R3XL_{md5[:8]}'
+    return f'R3_{md5[:8]}'
 
 
 def 烙(**kw):
@@ -48,13 +77,14 @@ def 烙(**kw):
     新模型 = {}
     for k in all_k:
         qk = 融合识别(k)
-        新模型[k] = a[k].astype(np.float32) * (1-kw['b'+qk]-kw['c'+qk]) + \
-            b[k].astype(np.float32) * kw['b'+qk] + \
-            c[k].astype(np.float32) * kw['c'+qk]
+        weighted_sum = 0
+        for i, mdl in enumerate(model):
+            weighted_sum += mdl[k] * kw[f'{qk}_{i}']
+        新模型[k] = weighted_sum
     save_file(新模型, f'{模型文件夹}/{文件名}.safetensors')
     del 新模型
     上网(f'{服务器地址}/sdapi/v1/refresh-checkpoints', method='post')
-    结果 = 评测模型(文件名, 'sdxl_vae_0.9.safetensors', 32, n_iter=80, use_tqdm=False, savedata=False, seed=22987, tags_seed=2223456, 计算相似度=False, width=576, height=576)
+    结果 = 评测模型(文件名, 'sdxl_vae_fp16fix.safetensors', 32, n_iter=80, use_tqdm=False, savedata=true, seed=22987, tags_seed=2223456, 计算相似度=False)
     m = []
     for dd in 结果:
         m.extend(dd['分数'])
@@ -70,15 +100,19 @@ def 烙(**kw):
     return acc
 
 识别结果 = set([融合识别(k) for k in all_k])
-所有参数 = sorted(['b'+k for k in 识别结果] + ['c'+k for k in 识别结果])
+all_params = []
+for i, mdl in enumerate(model):
+    all_params.extend([f"{k}_{i}" for k in 识别结果])
 
 optimizer = BayesianOptimization(
     f=烙,
-    pbounds={k: (-0.2, 0.55) for k in 所有参数},
+    pbounds={k: (-1, 1) for k in all_params},
     random_state=1,
+    #verbose=2.
 )
-optimizer.probe(params={k: 0 for k in 所有参数})
+optimizer.probe(params={k: 0 for k in all_params})
 optimizer.maximize(
     init_points=4,
     n_iter=1000,
 )
+print("done")
