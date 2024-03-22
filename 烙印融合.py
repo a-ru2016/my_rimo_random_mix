@@ -16,6 +16,9 @@ sys.path.append(os.path.join(os.path.dirname(__file__), './stable-diffusion-anim
 from common import 上网, 服务器地址
 from 评测多标签 import 评测模型
 
+allSteps = 1000
+seve = 2 #保存個数
+
 def setup_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -99,7 +102,7 @@ def 名字(kw: dict):
     md5 = hashlib.md5(str(''.join(f'{k}{v:.2f}' for k, v in s)).encode()).hexdigest()
     return f'R3_{md5[:8]}'
 
-
+steps = 0
 def 烙(**kw):
     文件名 = 名字(kw)
     新模型 = {}
@@ -111,7 +114,9 @@ def 烙(**kw):
         新模型[k] = weighted_sum.astype(np.float16)
     file_path = f'{模型文件夹}/{文件名}.safetensors'
     save_file(新模型, file_path)
-    upload_file(file_path,auth_token)
+    steps += 1
+    if steps >= allSteps-seve:
+        upload_file(file_path,auth_token)
     del 新模型
     上网(f'{服务器地址}/sdapi/v1/refresh-checkpoints', method='post')
     结果 = 评测模型(文件名, 'sdxl_vae_fp16fix.safetensors', 32, n_iter=80, use_tqdm=False, savedata=true, seed=22987, tags_seed=2223456, 计算相似度=False)
@@ -144,6 +149,6 @@ optimizer = BayesianOptimization(
 optimizer.probe(params={k: 0 for k in all_params})
 optimizer.maximize(
     init_points=4,
-    n_iter=1000,
+    n_iter=allSteps,
 )
 print("done")
