@@ -47,7 +47,6 @@ def load_fp16_file(filename):
     return data
 for i in range(len(tmp)):
     model.append(load_fp16_file(tmp[i]))
-    print(model)
     print(f"load {i+1} model done.")
 
 tmp = set(model[0])
