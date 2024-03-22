@@ -16,7 +16,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), './stable-diffusion-anim
 from common import 上网, 服务器地址
 from 评测多标签 import 评测模型
 
-allSteps = 1000
+allSteps = 1000 #計算回数
 seve = 2 #保存個数
 
 def setup_parser() -> argparse.ArgumentParser:
@@ -104,6 +104,7 @@ def 名字(kw: dict):
 
 steps = 0
 def 烙(**kw):
+    global steps
     文件名 = 名字(kw)
     新模型 = {}
     for k in all_k:
