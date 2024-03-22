@@ -17,7 +17,10 @@ from common import 上网, 服务器地址
 from 评测多标签 import 评测模型
 
 allSteps = 1000 #計算回数
-seve = 2 #保存個数
+save = 200 #何回に一回保存するか
+save_last = 2 #最後の何個を保存するか
+seed = 777
+模型文件夹 = '/Users/naganuma/rimo_random_mix/stable-diffusion-webui-rimo/models/Stable-diffusion'
 
 def setup_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser()
@@ -36,36 +39,29 @@ def setup_parser() -> argparse.ArgumentParser:
         default="fp16",
         help='計算精度[fp16,fp32]')
     return parser
-
 parser = setup_parser()
 args = parser.parse_args()
-
-
-datasets_repo = args.datasets_repo
-auth_token = args.auth_token
-commit_message = "烙印融合.py" #メッセージ
 if args.amp=="fp16":
     amp = np.float16
 else:
     amp = np.float32
+datasets_repo = args.datasets_repo
+auth_token = args.auth_token
+commit_message = "烙印融合.py" #メッセージ
 
-模型文件夹 = '/Volumes/TOSHIBAEXT/WEBUI/stable-diffusion-webui-rimo/models/Stable-diffusion'
-
-model_path = glob.glob(f"{模型文件夹}/*.safetensors")
-model = []
-def load_fp16_file(filename):
+def load_model(filename):
     data = load_file(filename)
     for k, v in data.items():
         data[k] = v.astype(amp)
     return data
-for i in range(len(model_path)):
-    model.append(load_fp16_file(model_path[i]))
-    print(f"load {i+1} model done.")
 
-tmp = set(model[0])
-for i in range(len(model)-1):
-    tmp = tmp & set(model[i+1])
-all_k = tmp
+model_path = glob.glob(f"{模型文件夹}/*.safetensors")
+all_k = load_model(model_path[0])
+all_k = set(all_k)
+for i in range(len(model_path)-1):
+    model = (load_model(model_path[i+1]))
+    all_k = all_k & set(model)
+    del model
 
 记录文件名 = f'Record{int(time.time())}.txt'
 记录 = []
@@ -108,19 +104,22 @@ def 烙(**kw):
     文件名 = 名字(kw)
     新模型 = {}
     for k in all_k:
-        qk = 融合识别(k)
-        weighted_sum = 0
-        for i, mdl in enumerate(model):
-            weighted_sum += mdl[k] * kw[f'{qk}_{i}']
-        新模型[k] = weighted_sum.astype(np.float32)
+        新模型[k] = 0
+    for i in range(len(model_path)):
+        model = (load_model(model_path[i]))
+        print(f"load {i}model")
+        for k in all_k:
+            qk = 融合识别(k)
+            weighted_sum = model[k] * kw[f'{qk}_{i}']
+            新模型[k] += weighted_sum.astype(np.float16)
+        del model
+        print(f"kill {i}model")
     file_path = f'{模型文件夹}/{文件名}.safetensors'
     save_file(新模型, file_path)
-    steps += 1
-    if steps >= allSteps-seve:
-        upload_file(file_path,auth_token)
+    del weighted_sum
     del 新模型
     上网(f'{服务器地址}/sdapi/v1/refresh-checkpoints', method='post')
-    结果 = 评测模型(文件名, 'sdxl_vae_fp16fix.safetensors', 32, n_iter=80, use_tqdm=False, savedata=True, seed=22987, tags_seed=2223456, 计算相似度=False)
+    结果 = 评测模型(文件名, 'sdxl_vae_fp16fix.safetensors', 32, n_iter=80, use_tqdm=False, savedata=True, seed=seed, tags_seed=seed, 计算相似度=False)
     m = []
     for dd in 结果:
         m.extend(dd['分数'])
@@ -133,18 +132,22 @@ def 烙(**kw):
     print(文件名, acc, mm.shape)
     with open(记录文件名, 'w', encoding='utf8') as f:
         json.dump(记录, f, indent=2)
-    os.remove(file_path)
+    steps += 1
+    if steps % save == 0 or steps >= allSteps - save_last:
+        upload_file(file_path,auth_token)
+    else:
+        os.remove(file_path)
     return acc
 
 识别结果 = set([融合识别(k) for k in all_k])
 all_params = []
-for i, mdl in enumerate(model):
+for i in range(len(model_path)):
     all_params.extend([f"{k}_{i}" for k in 识别结果])
 
 optimizer = BayesianOptimization(
     f=烙,
     pbounds={k: (-1, 1) for k in all_params},
-    random_state=777,
+    random_state=seed,
     #verbose=2.
 )
 optimizer.probe(params={k: 1/len(model_path) for k in all_params})
