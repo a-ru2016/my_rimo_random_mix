@@ -16,6 +16,11 @@ sys.path.append(os.path.join(os.path.dirname(__file__), './stable-diffusion-anim
 from common import 上网, 服务器地址
 from 评测多标签 import 评测模型
 
+datasets_repo = ""#ユーザー名/リポジトリ名
+commit_message = "烙印融合.py" #メッセージ
+auth_token = "" #書き込みトークン
+
+
 def setup_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -83,9 +88,6 @@ def upload_file(file_path, token):
           )
           print(f"Upload success, located at https://huggingface.co/datasets/{datasets_repo}/blob/main/{file_name}\n")
 api = HfApi()
-datasets_repo = "aru2016/model"
-commit_message = "烙印融合.py"
-auth_token = "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"
 
 def 名字(kw: dict):
     s = sorted(kw.items())
