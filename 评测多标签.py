@@ -12,11 +12,7 @@ from common import 上网, ml_danbooru标签, safe_name, 服务器地址, check_
 
 
 要测的模型 = [
-    ("tPonynai3_v20","sdxl_vae_fp16fix.safetensors"),
     ("SDXLAnimePileDriver_v10","sdxl_vae_fp16fix.safetensors"),
-    ("autismmixSDXL_autismmixConfetti","sdxl_vae_fp16fix.safetensors"),
-    ("animeIllustDiffusion_v08","sdxl_vae_fp16fix.safetensors"),
-    ("animeAntifreezingSolutionXL_v10","sdxl_vae_fp16fix.safetensors"),
     ("animagine-xl-3.1","sdxl_vae_fp16fix.safetensors"),
     ("aniease_v10","sdxl_vae_fp16fix.safetensors"),
     ("4thTailHentaiModel_03","sdxl_vae_fp16fix.safetensors"),
