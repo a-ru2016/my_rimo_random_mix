@@ -25,7 +25,7 @@ def setup_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         '--amp',
         default="float16",
-        help='計算精度[float16,float32,int8]')
+        help='計算精度[float16,float32]')
     return parser
 
 parser = setup_parser()
@@ -33,14 +33,12 @@ args = parser.parse_args()
 
 if args.amp=="float16":
     amp = np.float16
-elif args.amp=="int8":
-    amp = np.int8
 else:
     amp = np.float32
 
-模型文件夹 = './stable-diffusion-webui/models/Stable-diffusion'
+模型文件夹 = '/Volumes/TOSHIBAEXT/WEBUI/stable-diffusion-webui-rimo/models/Stable-diffusion'
 
-tmp = glob.glob("./stable-diffusion-webui/models/Stable-diffusion/*.safetensors")
+tmp = glob.glob("/Volumes/TOSHIBAEXT/WEBUI/stable-diffusion-webui-rimo/models/Stable-diffusion/*.safetensors")
 model = []
 def load_fp16_file(filename):
     data = load_file(filename)
@@ -49,6 +47,8 @@ def load_fp16_file(filename):
     return data
 for i in range(len(tmp)):
     model.append(load_fp16_file(tmp[i]))
+    print(model)
+    print(f"load {i+1} model done.")
 
 tmp = set(model[0])
 for i in range(len(model)-1):
