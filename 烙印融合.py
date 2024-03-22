@@ -16,17 +16,18 @@ sys.path.append(os.path.join(os.path.dirname(__file__), './stable-diffusion-anim
 from common import 上网, 服务器地址
 from 评测多标签 import 评测模型
 
-datasets_repo = ""#ユーザー名/リポジトリ名
-commit_message = "烙印融合.py" #メッセージ
-auth_token = "" #書き込みトークン
-
-
 def setup_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser()
     parser.add_argument(
+        "datasets_repo"
+        help="user name/repository name ユーザー名/リポジトリ名")
+    parser.add_argument(
+        "auth_token"
+        help="write token 書き込みトークン")
+    parser.add_argument(
         "--ver",
         default="XL",
-        help="モデルバージョン")
+        help="モデルバージョン,WIP")
     parser.add_argument(
         '--amp',
         default="float16",
@@ -36,6 +37,10 @@ def setup_parser() -> argparse.ArgumentParser:
 parser = setup_parser()
 args = parser.parse_args()
 
+
+datasets_repo =args.datasets_repo
+auth_token = args.auth_token
+commit_message = "烙印融合.py" #メッセージ
 if args.amp=="float16":
     amp = np.float16
 else:
