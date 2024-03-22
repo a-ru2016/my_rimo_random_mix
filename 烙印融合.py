@@ -19,10 +19,10 @@ from 评测多标签 import 评测模型
 def setup_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "datasets_repo"
+        "datasets_repo",
         help="user name/repository name ユーザー名/リポジトリ名")
     parser.add_argument(
-        "auth_token"
+        "auth_token",
         help="write token 書き込みトークン")
     parser.add_argument(
         "--ver",
@@ -38,7 +38,7 @@ parser = setup_parser()
 args = parser.parse_args()
 
 
-datasets_repo =args.datasets_repo
+datasets_repo = args.datasets_repo
 auth_token = args.auth_token
 commit_message = "烙印融合.py" #メッセージ
 if args.amp=="float16":
@@ -48,7 +48,7 @@ else:
 
 模型文件夹 = '/Volumes/TOSHIBAEXT/WEBUI/stable-diffusion-webui-rimo/models/Stable-diffusion'
 
-tmp = glob.glob("/Volumes/TOSHIBAEXT/WEBUI/stable-diffusion-webui-rimo/models/Stable-diffusion/*.safetensors")
+tmp = glob.glob(f"{模型文件夹}/*.safetensors")
 model = []
 def load_fp16_file(filename):
     data = load_file(filename)
