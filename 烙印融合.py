@@ -33,8 +33,8 @@ def setup_parser() -> argparse.ArgumentParser:
         help="モデルバージョン,WIP")
     parser.add_argument(
         '--amp',
-        default="float16",
-        help='計算精度[float16,float32]')
+        default="fp16",
+        help='計算精度[fp16,fp32]')
     return parser
 
 parser = setup_parser()
@@ -44,22 +44,22 @@ args = parser.parse_args()
 datasets_repo = args.datasets_repo
 auth_token = args.auth_token
 commit_message = "烙印融合.py" #メッセージ
-if args.amp=="float16":
+if args.amp=="fp16":
     amp = np.float16
 else:
     amp = np.float32
 
 模型文件夹 = '/Volumes/TOSHIBAEXT/WEBUI/stable-diffusion-webui-rimo/models/Stable-diffusion'
 
-tmp = glob.glob(f"{模型文件夹}/*.safetensors")
+model_path = glob.glob(f"{模型文件夹}/*.safetensors")
 model = []
 def load_fp16_file(filename):
     data = load_file(filename)
     for k, v in data.items():
         data[k] = v.astype(amp)
     return data
-for i in range(len(tmp)):
-    model.append(load_fp16_file(tmp[i]))
+for i in range(len(model_path)):
+    model.append(load_fp16_file(model_path[i]))
     print(f"load {i+1} model done.")
 
 tmp = set(model[0])
@@ -112,7 +112,7 @@ def 烙(**kw):
         weighted_sum = 0
         for i, mdl in enumerate(model):
             weighted_sum += mdl[k] * kw[f'{qk}_{i}']
-        新模型[k] = weighted_sum.astype(np.float16)
+        新模型[k] = weighted_sum.astype(np.float32)
     file_path = f'{模型文件夹}/{文件名}.safetensors'
     save_file(新模型, file_path)
     steps += 1
@@ -120,7 +120,7 @@ def 烙(**kw):
         upload_file(file_path,auth_token)
     del 新模型
     上网(f'{服务器地址}/sdapi/v1/refresh-checkpoints', method='post')
-    结果 = 评测模型(文件名, 'sdxl_vae_fp16fix.safetensors', 32, n_iter=80, use_tqdm=False, savedata=true, seed=22987, tags_seed=2223456, 计算相似度=False)
+    结果 = 评测模型(文件名, 'sdxl_vae_fp16fix.safetensors', 32, n_iter=80, use_tqdm=False, savedata=True, seed=22987, tags_seed=2223456, 计算相似度=False)
     m = []
     for dd in 结果:
         m.extend(dd['分数'])
@@ -147,7 +147,7 @@ optimizer = BayesianOptimization(
     random_state=777,
     #verbose=2.
 )
-optimizer.probe(params={k: 0 for k in all_params})
+optimizer.probe(params={k: 1/len(model_path) for k in all_params})
 optimizer.maximize(
     init_points=4,
     n_iter=allSteps,
