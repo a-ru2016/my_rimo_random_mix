@@ -1,3 +1,19 @@
+# 使用方法
+
+a1111 webuiを--apiを付けて起動する
+
+stable-diffusion-anime-tag-benchmark/评测多标签.pyの要测的模型に使いたいモデル名とVAEを書く
+
+烙印融合.pyの模型文件夹にwebuiのモデルが入っている場所を指定する(vramによって指定できるモデル数が変わるから検証してね)
+
+下をターミナルに打つ
+ 
+python3 烙印融合.py あなたのhuggingfaceのユーザー名/あなたのhuggingfaceのリポジトリ名 あなたのhuggingfaceのwriteトークン
+
+ひたすら待つ
+
+# 変更したもの
+
 烙印融合.pyのみ使用可能
 
 fp16に対応
