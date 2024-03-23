@@ -80,7 +80,7 @@ def 评测模型(model, VAE, m, n_iter, use_tqdm=True, savedata=True, extra_prom
             continue
         数量参数 = {
             'batch_size': 1,
-            'n_iter': 2,
+            'n_iter': 1,
         }
         r = 上网(f'{服务器地址}/sdapi/v1/txt2img', 数量参数 | 参数, 'post')
         图s = [base64.b64decode(b64) for b64 in r['images']]
