@@ -11,16 +11,19 @@ import glob
 import argparse
 from huggingface_hub import HfApi
 from pathlib import Path
+from multiprocessing import Process,Pool
+from concurrent.futures import ProcessPoolExecutor
 
 sys.path.append(os.path.join(os.path.dirname(__file__), './stable-diffusion-anime-tag-benchmark'))
 from common import 上网, 服务器地址
 from 评测多标签 import 评测模型
-
+#メモ 1:57スタート
 allSteps = 1000 #計算回数
 save = 200 #何回に一回保存するか
 save_last = 2 #最後の何個を保存するか
 seed = 777
 模型文件夹 = '/Users/naganuma/rimo_random_mix/stable-diffusion-webui-rimo/models/Stable-diffusion'
+parallel = 4
 
 def setup_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser()
@@ -98,6 +101,11 @@ def 名字(kw: dict):
     md5 = hashlib.md5(str(''.join(f'{k}{v:.2f}' for k, v in s)).encode()).hexdigest()
     return f'R3_{md5[:8]}'
 
+def merge(k):
+    qk = 融合识别(k)
+    weighted_sum = model[k] * kw[f'{qk}_{i}']
+    新模型[k] += weighted_sum.astype(np.float16)
+
 steps = 0
 def 烙(**kw):
     global steps
@@ -107,19 +115,18 @@ def 烙(**kw):
         新模型[k] = 0
     for i in range(len(model_path)):
         model = (load_model(model_path[i]))
-        print(f"load {i}model")
+        print(f"load {i+1}model")
         for k in all_k:
             qk = 融合识别(k)
             weighted_sum = model[k] * kw[f'{qk}_{i}']
             新模型[k] += weighted_sum.astype(np.float16)
         del model
-        print(f"kill {i}model")
+        print(f"kill {i+1}model")
     file_path = f'{模型文件夹}/{文件名}.safetensors'
     save_file(新模型, file_path)
-    del weighted_sum
     del 新模型
     上网(f'{服务器地址}/sdapi/v1/refresh-checkpoints', method='post')
-    结果 = 评测模型(文件名, 'sdxl_vae_fp16fix.safetensors', 32, n_iter=80, use_tqdm=False, savedata=True, seed=seed, tags_seed=seed, 计算相似度=False)
+    结果 = 评测模型(文件名, 'sdxl_vae_fp16fix.safetensors', 32, n_iter=10, use_tqdm=False, savedata=True, seed=seed, tags_seed=seed, 计算相似度=False)
     m = []
     for dd in 结果:
         m.extend(dd['分数'])
@@ -133,6 +140,7 @@ def 烙(**kw):
     with open(记录文件名, 'w', encoding='utf8') as f:
         json.dump(记录, f, indent=2)
     steps += 1
+    print(f"naw steps is{steps}")
     if steps % save == 0 or steps >= allSteps - save_last:
         upload_file(file_path,auth_token)
     else:
@@ -144,15 +152,16 @@ all_params = []
 for i in range(len(model_path)):
     all_params.extend([f"{k}_{i}" for k in 识别结果])
 
-optimizer = BayesianOptimization(
-    f=烙,
-    pbounds={k: (-1, 1) for k in all_params},
-    random_state=seed,
-    #verbose=2.
-)
-optimizer.probe(params={k: 1/len(model_path) for k in all_params})
-optimizer.maximize(
-    init_points=4,
-    n_iter=allSteps,
-)
-print("done")
+if __name__ == '__main__':
+    optimizer = BayesianOptimization(
+        f=烙,
+        pbounds={k: (-1, 1) for k in all_params},
+        random_state=seed,
+        #verbose=2.
+    )
+    optimizer.probe(params={k: 1/len(model_path) for k in all_params})
+    optimizer.maximize(
+        init_points=4,
+        n_iter=allSteps,
+    )
+    print("done")
