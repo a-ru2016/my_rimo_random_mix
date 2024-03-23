@@ -12,14 +12,25 @@ from common import 上网, ml_danbooru标签, safe_name, 服务器地址, check_
 
 
 要测的模型 = [
-    ("merge_base2_UnetOnly","sdxl_vae_fp16fix.safetensors"),
-    ("merge_kohakuXLDelta","sdxl_vae_fp16fix.safetensors"),
+    ("4thTailHentaiModel_03","sdxl_vae_fp16fix.safetensors"),
+    ("aniease_v10","sdxl_vae_fp16fix.safetensors"),
+    ("animagine-xl-3.1","sdxl_vae_fp16fix.safetensors"),
+    ("animeAntifreezingSolutionXL_v10","sdxl_vae_fp16fix.safetensors"),
+    ("animeconfettitunexl_con5tixl","sdxl_vae_fp16fix.safetensors"),
+    ("animeIllustDiffusion_v08","sdxl_vae_fp16fix.safetensors"),
+    ("autismmixSDXL_autismmixConfetti","sdxl_vae_fp16fix.safetensors"),
+    ("heartOfAppleXL_v10","sdxl_vae_fp16fix.safetensors"),
+    ("SDXLAnimeBulldozer_v20","sdxl_vae_fp16fix.safetensors"),
+    ("SDXLAnimePileDriver_v10","sdxl_vae_fp16fix.safetensors"),
+    ("swampmachine_v20","sdxl_vae_fp16fix.safetensors"),
+    ("tPonynai3_v20","sdxl_vae_fp16fix.safetensors"),
+    ("vivaldixlOpenDalle3_v10","sdxl_vae_fp16fix.safetensors"),
 ]
 
 sampler = 'DPM++ 2M Karras'
-steps = 30
-width = 512
-height = 512
+steps = 25
+width = 768
+height = 1024
 cfg_scale = 7
 
 存图文件夹 = Path('out_多标签')
@@ -56,7 +67,7 @@ def 评测模型(model, VAE, m, n_iter, use_tqdm=True, savedata=True, extra_prom
             'override_settings': {
                 'sd_model_checkpoint': model,
                 'sd_vae': VAE,
-                'CLIP_stop_at_last_layers': 1,
+                'CLIP_stop_at_last_layers': 2,
             },
         }
         skip = False
@@ -68,7 +79,7 @@ def 评测模型(model, VAE, m, n_iter, use_tqdm=True, savedata=True, extra_prom
             本地记录.append(i)
             continue
         数量参数 = {
-            'batch_size': 4,
+            'batch_size': 1,
             'n_iter': 2,
         }
         r = 上网(f'{服务器地址}/sdapi/v1/txt2img', 数量参数 | 参数, 'post')
