@@ -28,7 +28,7 @@ from common import 上网, ml_danbooru标签, safe_name, 服务器地址, check_
 ]
 
 sampler = 'DPM++ 2M Karras'
-steps = 25
+steps = 20
 width = 768
 height = 1024
 cfg_scale = 7
@@ -36,7 +36,7 @@ cfg_scale = 7
 存图文件夹 = Path('out_多标签')
 存图文件夹.mkdir(exist_ok=True)
 
-check_model(要测的模型)
+#check_model(要测的模型)
 
 
 if Path('savedata/记录_多标签.json').exists():
@@ -66,7 +66,7 @@ def 评测模型(model, VAE, m, n_iter, use_tqdm=True, savedata=True, extra_prom
             'cfg_scale': cfg_scale,
             'override_settings': {
                 'sd_model_checkpoint': model,
-                'sd_vae': VAE,
+                #'sd_vae': VAE,
                 'CLIP_stop_at_last_layers': 2,
             },
         }
