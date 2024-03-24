@@ -66,6 +66,7 @@ for i in range(len(model_path)-1):
     all_k = all_k & set(model)
     del model
 
+os.makedirs(模型文件夹+"/output",exist_ok = True)
 os.makedirs("log",exist_ok = True)
 记录文件名 = f'log/Record{int(time.time())}.txt'
 记录 = []
@@ -134,7 +135,7 @@ def 烙(**kw):
         del model
         print(f"kill {i+1}model")
     file_path = f'{模型文件夹}/{文件名}.safetensors'
-    save_file(新模型, file_path)
+    save_file(新模型+"/output", file_path)
     del 新模型
     上网(f'{服务器地址}/sdapi/v1/refresh-checkpoints', method='post')
     结果 = 评测模型(文件名, 'sdxl_vae_fp16fix.safetensors', 32, n_iter=3, use_tqdm=False, savedata=False, seed=seed, tags_seed=seed, 计算相似度=False)
