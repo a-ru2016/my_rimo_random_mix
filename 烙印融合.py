@@ -113,7 +113,15 @@ def 烙(**kw):
     新模型 = {}
     for k in all_k:
         新模型[k] = 0
-    for i in range(len(model_path)):
+    for k in all_k:#正規化
+        qk = 融合识别(k)
+        sum=0
+        for i in range(len(model_path)):
+            sum += kw[f'{qk}_{i}']
+        ratio = 1/sum
+        for i in range(len(model_path)):
+            kw[f'{qk}_{i}'] *= ratio
+    for i in range(len(model_path)):#merge
         model = (load_model(model_path[i]))
         print(f"load {i+1}model")
         for k in all_k:
