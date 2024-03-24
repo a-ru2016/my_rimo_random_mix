@@ -126,7 +126,7 @@ def 烙(**kw):
     save_file(新模型, file_path)
     del 新模型
     上网(f'{服务器地址}/sdapi/v1/refresh-checkpoints', method='post')
-    结果 = 评测模型(文件名, 'sdxl_vae_fp16fix.safetensors', 32, n_iter=7, use_tqdm=False, savedata=True, seed=seed, tags_seed=seed, 计算相似度=False)
+    结果 = 评测模型(文件名, 'sdxl_vae_fp16fix.safetensors', 32, n_iter=7, use_tqdm=False, savedata=False, seed=seed, tags_seed=seed, 计算相似度=False)
     m = []
     for dd in 结果:
         m.extend(dd['分数'])
