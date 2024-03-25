@@ -2,7 +2,7 @@
 
 a1111 webuiを"SSDに"入れてモデルも入れる(forgeも可)
 
-a1111 webuiを--api --api-server-stopを付けて起動する
+a1111 webuiのwebui-user.batのCOMMANDLINE_ARGSに--apiを付ける
 
 烙印融合.pyの模型文件夹にwebuiのモデルが入っている場所を指定する(ここで指定したフォルダーに入っているモデルすべて使う)
 
