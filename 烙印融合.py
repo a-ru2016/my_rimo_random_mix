@@ -113,7 +113,7 @@ def merge(k):
 steps = 0
 def 烙(**kw):
     os.chdir(re.sub("/models/Stable-diffusion","",模型文件夹))#webui起動
-    proc = subprocess.Popen(["open", "-a","terminal","webui.sh"])
+    proc = subprocess.Popen(["open", "-a","terminal","webui.sh","--api"])
     ps = subprocess.run(["ps"],capture_output=True, text=True).stdout
     pattern = r'(\d+)\s+\S+\s+\S+\s+bash\s+./webui.sh'
     match = re.search(pattern, ps)
