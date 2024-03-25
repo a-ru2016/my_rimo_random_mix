@@ -13,11 +13,13 @@ from huggingface_hub import HfApi
 from pathlib import Path
 from multiprocessing import Process,Pool
 from concurrent.futures import ProcessPoolExecutor
+import subprocess
+import re
 
 sys.path.append(os.path.join(os.path.dirname(__file__), './stable-diffusion-anime-tag-benchmark'))
 from common import 上网, 服务器地址
 from 评测多标签 import 评测模型
-#メモ 1:57スタート
+
 allSteps = 1000 #計算回数
 save = 200 #何回に一回保存するか
 save_last = 2 #最後の何個を保存するか
@@ -110,7 +112,17 @@ def merge(k):
 
 steps = 0
 def 烙(**kw):
-    global steps
+    os.chdir(re.sub("/models/Stable-diffusion","",模型文件夹))#webui起動
+    proc = subprocess.Popen(["open", "-a","terminal","webui.sh"])
+    ps = subprocess.run(["ps"],capture_output=True, text=True).stdout
+    pattern = r'(\d+)\s+\S+\s+\S+\s+bash\s+./webui.sh'
+    match = re.search(pattern, ps)
+    if match:
+        pid = match.group(1)
+        print("PID:", pid)
+    else:
+        print("Pattern not found.")
+    global steps#初期化
     文件名 = 名字(kw)
     新模型 = {}
     
@@ -139,7 +151,8 @@ def 烙(**kw):
     del 新模型
     上网(f'{服务器地址}/sdapi/v1/refresh-checkpoints', method='post')
     结果 = 评测模型(文件名, 'sdxl_vae_fp16fix.safetensors', 32, n_iter=3, use_tqdm=False, savedata=False, seed=seed, tags_seed=seed, 计算相似度=False)
-    上网(f'{服务器地址}/sdapi/v1/unload-checkpoint', method='post')
+    subprocess.Popen(["kill","-KILL",pid])#webui停止
+    proc.communicate()
     m = []
     for dd in 结果:
         m.extend(dd['分数'])
@@ -168,7 +181,7 @@ for i in range(len(model_path)):
 if __name__ == '__main__':
     optimizer = BayesianOptimization(
         f=烙,
-        pbounds={k: (-0.2, 1) for k in all_params},
+        pbounds={k: (0.01, 1) for k in all_params},
         random_state=seed,
         #verbose=2.
     )
