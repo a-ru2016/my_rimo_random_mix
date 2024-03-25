@@ -112,16 +112,6 @@ def merge(k):
 
 steps = 0
 def 烙(**kw):
-    os.chdir(re.sub("/models/Stable-diffusion","",模型文件夹))#webui起動
-    proc = subprocess.Popen(["open", "-a","terminal","webui.sh","--api"])
-    ps = subprocess.run(["ps"],capture_output=True, text=True).stdout
-    pattern = r'(\d+)\s+\S+\s+\S+\s+bash\s+./webui.sh'
-    match = re.search(pattern, ps)
-    if match:
-        pid = match.group(1)
-        print("PID:", pid)
-    else:
-        print("Pattern not found.")
     global steps#初期化
     文件名 = 名字(kw)
     新模型 = {}
@@ -151,8 +141,7 @@ def 烙(**kw):
     del 新模型
     上网(f'{服务器地址}/sdapi/v1/refresh-checkpoints', method='post')
     结果 = 评测模型(文件名, 'sdxl_vae_fp16fix.safetensors', 32, n_iter=3, use_tqdm=False, savedata=False, seed=seed, tags_seed=seed, 计算相似度=False)
-    subprocess.Popen(["kill","-KILL",pid])#webui停止
-    proc.communicate()
+    上网(f'{服务器地址}/sdapi/v1/server-restart', method='post')
     m = []
     for dd in 结果:
         m.extend(dd['分数'])
