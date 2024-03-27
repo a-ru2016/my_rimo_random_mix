@@ -9,6 +9,7 @@ import rimo_storage.cache
 from transformers import AutoProcessor, AutoTokenizer, CLIPVisionModelWithProjection, CLIPTextModelWithProjection
 
 import ml_danbooru
+import WaifuDiffusion_Tagger
 
 
 服务器地址 = f'http://127.0.0.1:7860'
@@ -18,6 +19,13 @@ def ml_danbooru标签(image_list: list[Union[str, bytes, os.PathLike]]) -> dict[
     超d = {}
     for image in image_list:
         tags = ml_danbooru.get_tags_from_image(Image.open(image), threshold=0.5, keep_ratio=True)
+        超d[image] = tags
+    return 超d
+
+def WD_tagger(image_list: list[Union[str, bytes, os.PathLike]]) -> dict[str, dict[str, float]]:
+    超d = {}
+    for image in image_list:
+        tags = WaifuDiffusion_Tagger.predict(Image.open(image),WaifuDiffusion_Tagger.VIT_MODEL_DSV3_REPO,0.35,False,0.35,False)
         超d[image] = tags
     return 超d
 
