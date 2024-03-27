@@ -8,7 +8,7 @@ import orjson
 from PIL import Image
 from tqdm import tqdm
 
-from common import 上网, ml_danbooru标签, safe_name, 服务器地址, check_model, 图像相似度, 要测的标签, 参数相同
+from common import 上网, ml_danbooru标签, safe_name, 服务器地址, check_model, 图像相似度, 参数相同,WD_tagger_list,image_path,Generate_tag
 
 
 要测的模型 = [
@@ -47,16 +47,17 @@ else:
 
 
 def 评测模型(model, VAE, m, n_iter, use_tqdm=True, savedata=True, extra_prompt='', seed=1, tags_seed=0, 计算相似度=True):
-    rd = random.Random(tags_seed)
+    #rd = random.Random(tags_seed)
     本地记录 = []
     iterator = range(n_iter)
     if use_tqdm:
         iterator = tqdm(iterator, ncols=70, desc=f'{m}-{model[:10]}')
     for index in iterator:
-        标签组 = rd.sample(要测的标签, m)
-        标签组 = [i.strip().replace(' ', '_') for i in 标签组]
+        #标签组 = rd.sample(要测的标签, m)
+        #标签组 = [i.strip().replace(' ', '_') for i in 标签组]
+        标签组 = Generate_tag(image_path)
         参数 = {
-            'prompt': f'1 girl, {", ".join(标签组)}'+extra_prompt,
+            'prompt': f'score_9, score_8_up, score_7_up, {", ".join(标签组)}'+extra_prompt,
             'negative_prompt': 'worst quality, low quality, blurry, greyscale, monochrome',
             'seed': seed,
             'width': width,
@@ -89,7 +90,7 @@ def 评测模型(model, VAE, m, n_iter, use_tqdm=True, savedata=True, extra_prom
             with open(存图文件夹 / safe_name(f'{md5}-{i}@{model}×{VAE}@{width}×{height}@{steps}×{sampler}.png'), 'wb') as f:
                 f.write(b)
         n = len(图s)
-        预测标签 = ml_danbooru标签([存图文件夹 / safe_name(f'{md5}-{i}@{model}×{VAE}@{width}×{height}@{steps}×{sampler}.png') for i in range(n)])
+        预测标签 = WD_tagger_list([存图文件夹 / safe_name(f'{md5}-{i}@{model}×{VAE}@{width}×{height}@{steps}×{sampler}.png') for i in range(n)])
 
         录 = {
             '分数': [[i.get(j, 0) for j in 标签组] for i in 预测标签.values()],

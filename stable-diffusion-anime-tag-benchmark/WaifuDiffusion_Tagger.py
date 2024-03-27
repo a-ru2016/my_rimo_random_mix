@@ -1,7 +1,7 @@
 import argparse
 import os
 
-import gradio as gr
+#import gradio as gr
 import huggingface_hub
 import numpy as np
 import onnxruntime as rt
@@ -14,8 +14,6 @@ Demo for the WaifuDiffusion tagger models
 
 Example image by [ほし☆☆☆](https://www.pixiv.net/en/users/43565085)
 """
-
-HF_TOKEN = os.environ["HF_TOKEN"]
 
 # Dataset v3 series of models:
 SWINV2_MODEL_DSV3_REPO = "SmilingWolf/wd-swinv2-tagger-v3"
@@ -102,12 +100,10 @@ class Predictor:
         csv_path = huggingface_hub.hf_hub_download(
             model_repo,
             LABEL_FILENAME,
-            use_auth_token=HF_TOKEN,
         )
         model_path = huggingface_hub.hf_hub_download(
             model_repo,
             MODEL_FILENAME,
-            use_auth_token=HF_TOKEN,
         )
         return csv_path, model_path
 
@@ -134,10 +130,11 @@ class Predictor:
 
     def prepare_image(self, image):
         target_size = self.model_target_size
-
-        canvas = Image.new("RGBA", image.size, (255, 255, 255))
-        canvas.alpha_composite(image)
-        image = canvas.convert("RGB")
+        
+        if not image.mode == 'RGB':
+            canvas = Image.new("RGBA", image.size, (255, 255, 255))
+            canvas.alpha_composite(image)
+            image = canvas.convert("RGB")
 
         # Pad image to square
         image_shape = image.size
@@ -216,6 +213,7 @@ class Predictor:
         sorted_general_strings = (
             ", ".join(sorted_general_strings).replace("(", "\(").replace(")", "\)")
         )
+        
 
         return sorted_general_strings, rating, character_res, general_res
 
@@ -235,7 +233,7 @@ def main():
         CONV2_MODEL_DSV2_REPO,
         VIT_MODEL_DSV2_REPO,
     ]
-
+'''
     with gr.Blocks(title=TITLE) as demo:
         with gr.Column():
             gr.Markdown(
@@ -335,5 +333,6 @@ def main():
     demo.launch()
 
 
-#if __name__ == "__main__":
-#    main()
+if __name__ == "__main__":
+    main()
+'''
