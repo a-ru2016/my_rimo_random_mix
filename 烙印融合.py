@@ -19,7 +19,7 @@ from urllib.parse import urlencode
 from urllib.request import urlopen, Request
 
 sys.path.append(os.path.join(os.path.dirname(__file__), './stable-diffusion-anime-tag-benchmark'))
-from common import 上网, 服务器地址
+from common import 上网, 服务器地址,load_api
 from 评测多标签 import 评测模型
 
 allSteps = 1000 #計算回数
@@ -141,24 +141,18 @@ def 烙(**kw):
     file_path = f'{模型文件夹}/output/{文件名}.safetensors'
     save_file(新模型, file_path)
     del 新模型
-    上网(f'{服务器地址}/sdapi/v1/refresh-checkpoints', method='post')
+    load_api('/sdapi/v1/refresh-checkpoints', method='POST')
     结果 = 评测模型(文件名, 'sdxl_vae_fp16fix.safetensors', 32, n_iter=3, use_tqdm=False, savedata=False, seed=seed, tags_seed=seed, 计算相似度=False)
-    url = 'http://127.0.0.1:7860/sdapi/v1/server-restart'#webui再起動
-    headers = {"accept" :"application/json"}
-    data = ""
-    data = urlencode(data).encode("utf-8")
-    request = Request(url, headers=headers,method='POST', data=data)
-    response = urlopen(request)
-    m = []#後処理
+    load_api('/sdapi/v1/server-restart',method='POST')#webui再起動
+    m = np.array([])#後処理
     for dd in 结果:
-        m.extend(dd['分数'])
-    mm = np.array(m)
-    acc = (mm > 0.001).sum() / len(mm.flatten())
+        m = np.append(m, dd['分数'])
+    acc = (m > 0.001).sum() / len(m.flatten())
     记录.append({
         '文件名': 文件名,
         'acc': acc,
     })
-    print(文件名, acc, mm.shape)
+    print(文件名, acc, m.shape)
     with open(记录文件名, 'w', encoding='utf8') as f:
         json.dump(记录, f, indent=2)
     steps += 1
