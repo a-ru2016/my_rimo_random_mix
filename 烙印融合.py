@@ -15,6 +15,8 @@ from multiprocessing import Process,Pool
 from concurrent.futures import ProcessPoolExecutor
 import subprocess
 import re
+from urllib.parse import urlencode
+from urllib.request import urlopen, Request
 
 sys.path.append(os.path.join(os.path.dirname(__file__), './stable-diffusion-anime-tag-benchmark'))
 from common import 上网, 服务器地址
@@ -112,11 +114,9 @@ def merge(k):
 
 steps = 0
 def 烙(**kw):
-    proc = subprocess.Popen(["open", "-a","terminal",re.sub("models/Stable-diffusion","",模型文件夹)+"webui.sh"])#webui起動
     global steps#初期化
     文件名 = 名字(kw)
     新模型 = {}
-    
     for k in all_k:
         新模型[k] = 0
     for k in all_k:#正規化
@@ -143,17 +143,13 @@ def 烙(**kw):
     del 新模型
     上网(f'{服务器地址}/sdapi/v1/refresh-checkpoints', method='post')
     结果 = 评测模型(文件名, 'sdxl_vae_fp16fix.safetensors', 32, n_iter=3, use_tqdm=False, savedata=False, seed=seed, tags_seed=seed, 计算相似度=False)
-    ps = subprocess.run(["ps"],capture_output=True, text=True).stdout
-    pattern = r'(\d+)\s+\S+\s+\S+\s+bash\s+/Users/naganuma/rimo_random_mix/stable-diffusion-webui-forge/webui.sh'
-    match = re.search(pattern, ps)
-    if match:
-        pid = match.group(1)
-        print("PID:", pid)
-    else:
-        print("Pattern not found.")
-    subprocess.run(["kill","-KILL",pid])#webui停止
-    proc.communicate()
-    m = []
+    url = 'http://127.0.0.1:7860/sdapi/v1/server-restart'#webui再起動
+    headers = {"accept" :"application/json"}
+    data = ""
+    data = urlencode(data).encode("utf-8")
+    request = Request(url, headers=headers,method='POST', data=data)
+    response = urlopen(request)
+    m = []#後処理
     for dd in 结果:
         m.extend(dd['分数'])
     mm = np.array(m)
@@ -167,11 +163,13 @@ def 烙(**kw):
         json.dump(记录, f, indent=2)
     steps += 1
     print(f"naw steps is {steps}")
-    if steps % save == 0 or steps >= allSteps - save_last:
+    if steps % save == 0 or steps >= allSteps - save_last:#save
         upload_file(file_path,auth_token)
     else:
         os.remove(file_path)
     return acc
+
+subprocess.run(["open", "-a","terminal",re.sub("models/Stable-diffusion","",模型文件夹)+"webui.sh"])
 
 识别结果 = set([融合识别(k) for k in all_k])
 all_params = []
