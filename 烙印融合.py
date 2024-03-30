@@ -26,8 +26,8 @@ allSteps = 1000 #計算回数
 save = 200 #何回に一回保存するか
 save_last = 2 #最後の何個を保存するか
 seed = 777
-模型文件夹 = '/Users/naganuma/rimo_random_mix/stable-diffusion-webui-forge/models/Stable-diffusion'
-parallel = 4
+模型文件夹 = '/Users/naganuma/rimo_random_mix/stable-diffusion-webui-forge/models/Stable-diffusion' #モデル保存場所
+model_num = 3 #モデル個数
 
 def setup_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser()
@@ -63,17 +63,12 @@ def load_model(filename):
     return data
 
 model_path = glob.glob(f"{模型文件夹}/*.safetensors")
-all_k = load_model(model_path[0])
-all_k = set(all_k)
-for i in range(len(model_path)-1):
-    model = (load_model(model_path[i+1]))
-    all_k = all_k & set(model)
-    del model
-
-os.makedirs(模型文件夹+"/output",exist_ok = True)
-os.makedirs("log",exist_ok = True)
-记录文件名 = f'log/Record{int(time.time())}.txt'
-记录 = []
+model = []
+model.append(load_model(model_path[0]))
+all_k = set(model[0])
+for i in range(model_num-1):
+    model.append((load_model(model_path[i+1])))
+    all_k = all_k & set(model[i+i])
 
 def 融合识别(s: str) -> str:
     nm={
@@ -107,12 +102,18 @@ def 名字(kw: dict):
     md5 = hashlib.md5(str(''.join(f'{k}{v:.2f}' for k, v in s)).encode()).hexdigest()
     return f'R3_{md5[:8]}'
 
-def merge(k):
-    qk = 融合识别(k)
-    weighted_sum = model[k] * kw[f'{qk}_{i}']
-    新模型[k] += weighted_sum.astype(np.float16)
-
+os.makedirs(模型文件夹+"/output",exist_ok = True)
+os.makedirs("log",exist_ok = True)
+记录文件名 = f'log/Record{int(time.time())}.txt'
+记录 = []
+merge_log_name = f'log/merge_log{int(time.time())}.txt'
+merge_log = []
 steps = 0
+识别结果 = set([融合识别(k) for k in all_k])
+all_params = []
+for i in range(len(model_path)):
+    all_params.extend([f"{k}_{i}" for k in 识别结果])
+
 def 烙(**kw):
     global steps#初期化
     文件名 = 名字(kw)
@@ -128,56 +129,52 @@ def 烙(**kw):
         tmp = 0
         for i in range(len(model_path)):
             kw[f'{qk}_{i}'] *= ratio
-    for i in range(len(model_path)):#merge
-        model = (load_model(model_path[i]))
-        print(f"load {i+1} model")
+    for i in range(model_num):#merge
         for k in all_k:
             qk = 融合识别(k)
-            weighted_sum = model[k] * kw[f'{qk}_{i}']
+            weighted_sum = model[i][k] * kw[f'{qk}_{i}']
             新模型[k] += weighted_sum.astype(np.float16)
-        del model
-        print(f"kill {i+1}model")
-    print("all model loaded.")
-    file_path = f'{模型文件夹}/output/{文件名}.safetensors'
+    file_path = f'{模型文件夹}/output/{文件名}.safetensors'#save
     save_file(新模型, file_path)
     del 新模型
     load_api('/sdapi/v1/refresh-checkpoints', method='POST')
     结果 = 评测模型(文件名, 'sdxl_vae_fp16fix.safetensors', 32, n_iter=3, use_tqdm=False, savedata=False, seed=seed, tags_seed=seed, 计算相似度=False)
     load_api('/sdapi/v1/server-restart',method='POST')#webui再起動
-    m = np.array([])#後処理
+    m = np.array([]) #loss
     for dd in 结果:
         m = np.append(m, dd['分数'])
     acc = (m > 0.001).sum() / len(m.flatten())
+    steps += 1 #log
+    print(f"Naw steps is {steps}")
     记录.append({
         '文件名': 文件名,
         'acc': acc,
+        'steps': steps,
+    })
+    merge_log.append({
+        'steps': steps,
+        'merge': kw,
     })
     print(文件名, acc, m.shape)
     with open(记录文件名, 'w', encoding='utf8') as f:
         json.dump(记录, f, indent=2)
-    steps += 1
-    print(f"naw steps is {steps}")
-    if steps % save == 0 or steps >= allSteps - save_last:#save
+    with open(merge_log_name, 'w', encoding='utf8') as f:
+        json.dump(merge_log, f, indent=2)
+    if steps % save == 0 or steps >= allSteps - save_last:#upload
         upload_file(file_path,auth_token)
     else:
         os.remove(file_path)
     return acc
 
-subprocess.run(["open", "-a","terminal",re.sub("models/Stable-diffusion","",模型文件夹)+"webui.sh"])
-
-识别结果 = set([融合识别(k) for k in all_k])
-all_params = []
-for i in range(len(model_path)):
-    all_params.extend([f"{k}_{i}" for k in 识别结果])
-
 if __name__ == '__main__':
+    subprocess.run(["open", "-a","terminal",re.sub("models/Stable-diffusion","",模型文件夹)+"webui.sh"])
     optimizer = BayesianOptimization(
         f=烙,
         pbounds={k: (0.01, 1) for k in all_params},
         random_state=seed,
         #verbose=2.
     )
-    optimizer.probe(params={k: 1/len(model_path) for k in all_params})
+    optimizer.probe(params={k: 1/model_num for k in all_params})
     optimizer.maximize(
         init_points=4,
         n_iter=allSteps,
