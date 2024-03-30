@@ -3,14 +3,15 @@ import base64
 import hashlib
 import itertools
 from pathlib import Path
+import glob
 
 import orjson
 from PIL import Image
 from tqdm import tqdm
 
-from common import 上网, ml_danbooru标签, safe_name, 服务器地址, check_model, 图像相似度, 参数相同,WD_tagger_list,image_path,Generate_tag
+from common import 上网, ml_danbooru标签, safe_name, 服务器地址, check_model, 图像相似度, 参数相同,WD_tagger
 
-
+image_path = "/Volumes/TOSHIBAEXT/WEBUI/train/学習用/a_nekonpure-likes/名称未設定フォルダ/anime"
 要测的模型 = [
     ("4thTailHentaiModel_03","sdxl_vae_fp16fix.safetensors"),
     ("aniease_v10","sdxl_vae_fp16fix.safetensors"),
@@ -55,10 +56,13 @@ def 评测模型(model, VAE, m, n_iter, use_tqdm=True, savedata=True, extra_prom
     for index in iterator:
         #标签组 = rd.sample(要测的标签, m)
         #标签组 = [i.strip().replace(' ', '_') for i in 标签组]
-        标签组 = Generate_tag(image_path)
+        path_list = glob.glob(image_path+"/*.jpg")
+        path_list = path_list[random.randrange(len(path_list))]
+        tag,character_res_in = WD_tagger(path_list)
+        标签组 = [k for k in tag.keys()]
         参数 = {
-            'prompt': f'score_9, score_8_up, score_7_up, {", ".join(标签组)}'+extra_prompt,
-            'negative_prompt': 'worst quality, low quality, blurry, greyscale, monochrome',
+            'prompt': f'score_9, score_8_up, score_7_up, source_anime, {", ".join(标签组)}'+extra_prompt,
+            'negative_prompt': 'worst quality, low quality, blurry, greyscale, monochrome,source_furry, source_pony, source_cartoon, score_5_up, score_4_up',
             'seed': seed,
             'width': width,
             'height': height,
@@ -90,10 +94,13 @@ def 评测模型(model, VAE, m, n_iter, use_tqdm=True, savedata=True, extra_prom
             with open(存图文件夹 / safe_name(f'{md5}-{i}@{model}×{VAE}@{width}×{height}@{steps}×{sampler}.png'), 'wb') as f:
                 f.write(b)
         n = len(图s)
-        预测标签 = WD_tagger_list([存图文件夹 / safe_name(f'{md5}-{i}@{model}×{VAE}@{width}×{height}@{steps}×{sampler}.png') for i in range(n)])
+        for i in range(n):
+            预测标签,character_res_out = WD_tagger(存图文件夹 / safe_name(f'{md5}-{i}@{model}×{VAE}@{width}×{height}@{steps}×{sampler}.png'))
 
+        tmp = [预测标签.get(j, 0) for j in 标签组]
+        tmp.extend([character_res_out.get(j,0) for j in character_res_in.keys()])
         录 = {
-            '分数': [[i.get(j, 0) for j in 标签组] for i in 预测标签.values()],
+            '分数': tmp,
             '总数': n,
             '标签组': 标签组,
             '参数': 参数,
