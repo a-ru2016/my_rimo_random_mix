@@ -1,6 +1,6 @@
 # 使用方法
 
-a1111 webuiを"SSDに"入れてモデルも入れる(forgeも可)
+a1111 webuiを入れてモデルも入れる(forgeも可)
 
 a1111 webuiのwebui-user.batのCOMMANDLINE_ARGSに--api --api-server-stopを付ける
 
