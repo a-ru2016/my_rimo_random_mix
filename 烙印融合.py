@@ -31,7 +31,7 @@ seed = 777
 model_num = 3 #モデル個数
 #再開用
 text_file = "merge_log1711836000.txt" #/log内のmerge_logファイル
-save_steps = 300 #再開するステップ
+save_steps = 403 #再開するステップ
 save_only = False
 
 def setup_parser() -> argparse.ArgumentParser:
@@ -79,7 +79,7 @@ if text_file:
     with open(f"./log/{text_file}") as f:
         s = f.read()
         s = ast.literal_eval(s)
-        s = s[save_steps]["merge"]
+        s = s[save_steps-1]["merge"]
 else:
     s = {k: 1/model_num for k in all_k}
 
