@@ -11,7 +11,7 @@ from tqdm import tqdm
 
 from common import 上网, ml_danbooru标签, safe_name, 服务器地址, check_model, 图像相似度, 参数相同,WD_tagger
 
-image_path = "/Volumes/TOSHIBAEXT/WEBUI/train/学習用/a_nekonpure-likes/名称未設定フォルダ/anime"
+image_path = "/Users/naganuma/rimo_random_mix/img"
 要测的模型 = [
     ("4thTailHentaiModel_03","sdxl_vae_fp16fix.safetensors"),
     ("aniease_v10","sdxl_vae_fp16fix.safetensors"),
@@ -57,7 +57,8 @@ def 评测模型(model, VAE, m, n_iter, use_tqdm=True, savedata=True, extra_prom
         #标签组 = rd.sample(要测的标签, m)
         #标签组 = [i.strip().replace(' ', '_') for i in 标签组]
         path_list = glob.glob(image_path+"/*.jpg")
-        path_list = path_list[random.randrange(len(path_list))]
+        path_list.append(glob.glob(image_path+"/*.png"))
+        path_list = path_list[index]
         tag,character_res_in = WD_tagger(path_list)
         标签组 = [k for k in tag.keys()]
         参数 = {
@@ -109,7 +110,7 @@ def 评测模型(model, VAE, m, n_iter, use_tqdm=True, savedata=True, extra_prom
         }
         if 计算相似度:
             相似度 = []
-            for a, b in itertools.pairwise([Image.open(存图文件夹 / png_name+f"{_i}"+extension)) for i in range(n)]):
+            for a, b in itertools.pairwise([Image.open(存图文件夹 / png_name+f"{_i}"+extension) for i in range(n)]):
                 相似度.append(图像相似度(a, b))
             录['相似度'] = 相似度
 
