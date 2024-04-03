@@ -26,7 +26,7 @@ allSteps = 1000 #計算回数
 save = 200 #何回に一回保存するか
 save_last = 2 #最後の何個を保存するか
 seed = 777
-模型文件夹 = '/Users/yourname/rimo_random_mix/stable-diffusion-webui-forge/models/Stable-diffusion' #モデル保存場所
+模型文件夹 = '/Users/naganuma/rimo_random_mix/stable-diffusion-webui-forge/models/Stable-diffusion' #モデル保存場所
 model_num = 3 #モデル個数
 #再開用
 text_file = "merge_log1711836000.txt" #/log内のmerge_logファイル
@@ -194,4 +194,5 @@ if not save_only:
     print("done")
 elif save_only:
     subprocess.run(["open", "-a","terminal",re.sub("models/Stable-diffusion","",模型文件夹)+"webui.sh"])
+    allSteps = 1
     烙({k: s[k] for k in all_params})
