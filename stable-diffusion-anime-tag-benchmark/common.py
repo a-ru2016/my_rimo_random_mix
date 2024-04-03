@@ -28,7 +28,7 @@ def ml_danbooru标签(image_list: list[Union[str, bytes, os.PathLike]]) -> dict[
 
 def WD_tagger(image_path):
     WD = WaifuDiffusion_Tagger.Predictor()
-    sorted_general_strings, rating, character_res, general_res = WD.predict(Image.open(image_path),WaifuDiffusion_Tagger.VIT_MODEL_DSV3_REPO,0.35,False,0.85,False)
+    sorted_general_strings, rating, character_res, general_res = WD.predict(Image.open(image_path),WaifuDiffusion_Tagger.VIT_MODEL_DSV3_REPO,0.02,False,0.1,False)
     ratings = {k:v for k,v in rating.items() if v>=40}
     tags = dict(**character_res,**general_res,**ratings)
     return tags,character_res
