@@ -94,11 +94,11 @@ def 评测模型(model, VAE, m, n_iter, use_tqdm=True, savedata=True, extra_prom
         png_name = safe_name(f'{[j for j in character_res_in.keys()]}_{model}_{md5}')
         extension = ".png"
         for i, b in enumerate(图s):
-            with open(存图文件夹 / png_name+f"_{i}"+extension, 'wb') as f:
+            with open(存图文件夹 / f"{png_name}_{i}{extension}", 'wb') as f:
                 f.write(b)
         n = len(图s)
         for i in range(n):
-            预测标签,character_res_out = WD_tagger(存图文件夹 / png_name+f"_{i}"+extension)
+            预测标签,character_res_out = WD_tagger(存图文件夹 / f"{png_name}_{i}{extension}")
 
         tmp = [预测标签.get(j, 0) for j in 标签组]
         tmp.extend([character_res_out.get(j,0) for j in character_res_in.keys()])
@@ -110,7 +110,7 @@ def 评测模型(model, VAE, m, n_iter, use_tqdm=True, savedata=True, extra_prom
         }
         if 计算相似度:
             相似度 = []
-            for a, b in itertools.pairwise([Image.open(存图文件夹 / png_name+f"_{i}"+extension) for i in range(n)]):
+            for a, b in itertools.pairwise([Image.open(存图文件夹 / f"{png_name}_{i}{extension}") for i in range(n)]):
                 相似度.append(图像相似度(a, b))
             录['相似度'] = 相似度
 
