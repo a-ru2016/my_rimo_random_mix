@@ -28,6 +28,9 @@ save_last = 2 #最後の何個を保存するか
 seed = 777
 模型文件夹 = '/Users/naganuma/rimo_random_mix/stable-diffusion-webui-forge/models/Stable-diffusion' #モデル保存場所
 model_num = 3 #モデル個数
+#再開用
+text_file = "merge_log1711836000.txt" #/log内のmerge_logファイル
+save_steps = 300 #再開するステップ
 
 def setup_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser()
@@ -69,6 +72,14 @@ all_k = set(model[0])
 for i in range(model_num-1):
     model.append((load_model(model_path[i+1])))
     all_k = all_k & set(model[i+i])
+
+if text_file:
+    with open(f"./log/{text_file}") as f:
+        s = f.read()
+        s = ast.literal_eval(s)
+        s = s[save_steps]["merge"]
+else:
+    s = {k: 1/model_num for k in all_k}
 
 def 融合识别(s: str) -> str:
     nm={
@@ -174,7 +185,7 @@ if __name__ == '__main__':
         random_state=seed,
         #verbose=2.
     )
-    optimizer.probe(params={k: 1/model_num for k in all_params})
+    optimizer.probe(params={k: s[k] for k in all_params})
     optimizer.maximize(
         init_points=4,
         n_iter=allSteps,
