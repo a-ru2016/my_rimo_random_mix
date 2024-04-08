@@ -73,7 +73,7 @@ model.append(load_model(model_path[0]))
 all_k = set(model[0])
 for i in range(model_num-1):
     model.append((load_model(model_path[i+1])))
-    all_k = all_k & set(model[i+i])
+    all_k = all_k & set(model[i+1])
 
 def 融合识别(s: str) -> str:
     nm={
