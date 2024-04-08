@@ -24,15 +24,15 @@ from common import 上网, 服务器地址,load_api
 from 评测多标签 import 评测模型
 
 allSteps = 1000 #計算回数
-save = 200 #何回に一回保存するか
+save = 500 #何回に一回保存するか
 save_last = 2 #最後の何個を保存するか
 seed = 777
 模型文件夹 = '/Users/naganuma/rimo_random_mix/stable-diffusion-webui-forge/models/Stable-diffusion' #モデル保存場所
 model_num = 3 #モデル個数
 #再開用
-text_file = "merge_log1712141712.txt" #/log内のmerge_logファイル
-save_steps = 51 #再開するステップ
-save_only = True
+text_file = "" #/log内のmerge_logファイル
+save_steps = 0 #再開するステップ
+save_only = False
 
 def setup_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser()
@@ -74,14 +74,6 @@ all_k = set(model[0])
 for i in range(model_num-1):
     model.append((load_model(model_path[i+1])))
     all_k = all_k & set(model[i+i])
-
-if text_file:
-    with open(f"./log/{text_file}") as f:
-        s = f.read()
-        s = ast.literal_eval(s)
-        s = s[save_steps-1]["merge"]
-else:
-    s = {k: 1/model_num for k in all_k}
 
 def 融合识别(s: str) -> str:
     nm={
@@ -126,6 +118,14 @@ steps = 0
 all_params = []
 for i in range(len(model_path)):
     all_params.extend([f"{k}_{i}" for k in 识别结果])
+
+if text_file:
+    with open(f"./log/{text_file}") as f:
+        s = f.read()
+        s = ast.literal_eval(s)
+        s = s[save_steps-1]["merge"]
+else:
+    s = {k: 1/model_num for k in all_params}
 
 def 烙(**kw):
     global steps#初期化
