@@ -30,9 +30,9 @@ seed = 777
 模型文件夹 = '/Users/naganuma/rimo_random_mix/stable-diffusion-webui-forge/models/Stable-diffusion' #モデル保存場所
 model_num = 3 #モデル個数
 #再開用
-text_file = "merge_log1711836000.txt" #/log内のmerge_logファイル
-save_steps = 403 #再開するステップ
-save_only = False
+text_file = "merge_log1712141712.txt" #/log内のmerge_logファイル
+save_steps = 51 #再開するステップ
+save_only = True
 
 def setup_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser()
@@ -195,5 +195,6 @@ if not save_only:
     print("done")
 elif save_only:
     subprocess.run(["open", "-a","terminal",re.sub("models/Stable-diffusion","",模型文件夹)+"webui.sh"])
+    save_last = 1
     allSteps = 1
-    烙({k: s[k] for k in all_params})
+    烙(**{k: s[k] for k in all_params})
