@@ -91,7 +91,7 @@ def 评测模型(model, VAE, m, n_iter, use_tqdm=True, savedata=True, extra_prom
         r = 上网(f'{服务器地址}/sdapi/v1/txt2img', 数量参数 | 参数, 'post')
         图s = [base64.b64decode(b64) for b64 in r['images']]
         md5 = hashlib.md5(str(标签组).encode()).hexdigest()
-        png_name = safe_name(f'{[j for j in character_res_in.keys()]}_{model}_{md5}')
+        png_name = safe_name(f'{[j for j in character_res_in.keys()]}_{model}-{md5}')
         extension = ".png"
         for i, b in enumerate(图s):
             with open(存图文件夹 / f"{png_name}_{i}{extension}", 'wb') as f:
