@@ -30,9 +30,9 @@ seed = 777
 模型文件夹 = '/Users/naganuma/rimo_random_mix/stable-diffusion-webui-forge/models/Stable-diffusion' #モデル保存場所
 model_num = 3 #モデル個数
 #再開用
-text_file = "" #/log内のmerge_logファイル
-save_steps = 0 #再開するステップ
-save_only = False
+text_file = "Record1712691214.txt" #/log内のmerge_logファイル
+save_steps = 96 #再開するステップ
+save_only = True
 
 def setup_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser()
@@ -173,7 +173,9 @@ def 烙(**kw):
         json.dump(记录, f, indent=2)
     with open(merge_log_name, 'w', encoding='utf8') as f:
         json.dump(merge_log, f, indent=2)
-    if steps % save == 0 or steps >= allSteps - save_last:#upload
+    if allSteps==1:
+        pass
+    elif steps % save == 0 or steps >= allSteps - save_last:#upload
         upload_file(file_path,auth_token)
     else:
         os.remove(file_path)
