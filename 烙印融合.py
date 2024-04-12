@@ -30,7 +30,7 @@ seed = 777
 模型文件夹 = '/Users/naganuma/rimo_random_mix/stable-diffusion-webui-forge/models/Stable-diffusion' #モデル保存場所
 model_num = 3 #モデル個数
 #再開用
-text_file = "Record1712691214.txt" #/log内のmerge_logファイル
+text_file = "merge_log1712691214.txt" #/log内のmerge_logファイル
 save_steps = 96 #再開するステップ
 save_only = True
 
