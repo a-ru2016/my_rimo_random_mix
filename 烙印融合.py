@@ -23,16 +23,16 @@ sys.path.append(os.path.join(os.path.dirname(__file__), './stable-diffusion-anim
 from common import 上网, 服务器地址,load_api
 from 评测多标签 import 评测模型
 
-allSteps = 1000 #計算回数
-save = 500 #何回に一回保存するか
-save_last = 2 #最後の何個を保存するか
+allSteps = 300 #計算回数
+save = 400 #何回に一回保存するか
+save_last = 1 #最後の何個を保存するか
 seed = 777
 模型文件夹 = '/Users/naganuma/rimo_random_mix/stable-diffusion-webui-forge/models/Stable-diffusion' #モデル保存場所
 model_num = 3 #モデル個数
 #再開用
-text_file = "merge_log1712691214.txt" #/log内のmerge_logファイル
-save_steps = 96 #再開するステップ
-save_only = True
+text_file = "" #/log内のmerge_logファイル
+save_steps = 0 #再開するステップ
+save_only = False
 
 def setup_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser()
@@ -75,17 +75,6 @@ for i in range(model_num-1):
     model.append((load_model(model_path[i+1])))
     all_k = all_k & set(model[i+1])
 
-def 融合识别(s: str) -> str:
-    nm={
-        "unet": "model.diffusion_model.",
-        "clip":"conditioner.embedders.",
-    }
-    for k, v in nm.items():
-        if s.startswith(v):
-            n = s.removeprefix(v)
-            return f'{k}_{n}'
-    return 'r'
-
 def upload_file(file_path, token):
           file_name = "モデル/"+Path(file_path).name
           print(f"Uploading {file_name} to https://huggingface.co/datasets/{datasets_repo}")
@@ -107,6 +96,17 @@ def 名字(kw: dict):
     md5 = hashlib.md5(str(''.join(f'{k}{v:.2f}' for k, v in s)).encode()).hexdigest()
     return f'R3_{md5[:8]}'
 
+def 融合识别(s: str) -> str:
+    nm={
+        "unet": "model.diffusion_model.",
+        "clip":"conditioner.embedders.",
+    }
+    for k, v in nm.items():
+        if s.startswith(v):
+            n = s.removeprefix(v)
+            return f'{k}_{n}'
+    return 'r'
+
 os.makedirs(模型文件夹+"/output",exist_ok = True)
 os.makedirs("log",exist_ok = True)
 记录文件名 = f'log/Record{int(time.time())}.txt'
@@ -116,7 +116,7 @@ merge_log = []
 steps = 0
 识别结果 = set([融合识别(k) for k in all_k])
 all_params = []
-for i in range(len(model_path)):
+for i in range(model_num):
     all_params.extend([f"{k}_{i}" for k in 识别结果])
 
 if text_file:
@@ -125,28 +125,31 @@ if text_file:
         s = ast.literal_eval(s)
         s = s[save_steps-1]["merge"]
 else:
-    s = {k: 1/model_num for k in all_params}
+    s = {}
+    for k in all_params:
+        if int(k[-1]) == model_num-1:
+            s[k] = 1
+        else:
+            s[k] = (1/model_num)*(int(k[-1])+1)
+
+p = {}
+for k in all_params:
+    if int(k[-1]) == model_num-1:
+        p[k] = (1, 1)
+    else:
+        p[k] = (0.01, 1)
 
 def 烙(**kw):
     global steps#初期化
     文件名 = 名字(kw)
-    新模型 = {}
-    for k in all_k:
-        新模型[k] = 0
-    for k in all_k:#正規化
-        qk = 融合识别(k)
-        sum=0
-        for i in range(len(model_path)):
-            sum += kw[f'{qk}_{i}']
-        ratio = 1/sum
-        tmp = 0
-        for i in range(len(model_path)):
-            kw[f'{qk}_{i}'] *= ratio
+    新模型 = {k: 0 for k in all_k}
+    old_kw = {k: 0 for k in kw.keys()}
     for i in range(model_num):#merge
         for k in all_k:
             qk = 融合识别(k)
-            weighted_sum = model[i][k] * kw[f'{qk}_{i}']
+            weighted_sum = model[i][k] * (kw[f'{qk}_{i}']-old_kw[f'{qk}_{i}'])
             新模型[k] += weighted_sum.astype(np.float16)
+            old_kw[f'{qk}_{i+1}'] = kw[f'{qk}_{i}']
     file_path = f'{模型文件夹}/output/{文件名}.safetensors'#save
     save_file(新模型, file_path)
     del 新模型
@@ -185,7 +188,7 @@ if not save_only:
     subprocess.run(["open", "-a","terminal",re.sub("models/Stable-diffusion","",模型文件夹)+"webui.sh"])
     optimizer = BayesianOptimization(
         f=烙,
-        pbounds={k: (0.01, 1) for k in all_params},
+        pbounds={k: p[k] for k in all_params},
         random_state=seed,
         #verbose=2.
     )
