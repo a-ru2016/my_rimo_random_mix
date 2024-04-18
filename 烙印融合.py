@@ -147,9 +147,13 @@ def 烙(**kw):
     for i in range(model_num):#merge
         for k in all_k:
             qk = 融合识别(k)
-            weighted_sum = model[i][k] * (kw[f'{qk}_{i}']-old_kw[f'{qk}_{i}'])
+            if (kw[f'{qk}_{i}']-old_kw[f'{qk}_{i}']) > 0:
+                weighted_sum = model[i][k] * (kw[f'{qk}_{i}']-old_kw[f'{qk}_{i}'])
+                old_kw[f'{qk}_{i+1}'] = kw[f'{qk}_{i}']
+            else:
+                weighted_sum = model[i][k] * 0
+                old_kw[f'{qk}_{i+1}'] = old_kw[f'{qk}_{i}']
             新模型[k] += weighted_sum.astype(np.float16)
-            old_kw[f'{qk}_{i+1}'] = kw[f'{qk}_{i}']
     file_path = f'{模型文件夹}/output/{文件名}.safetensors'#save
     save_file(新模型, file_path)
     del 新模型
