@@ -9,10 +9,12 @@ import orjson
 from PIL import Image
 from tqdm import tqdm
 import numpy as np
+import os
 
 from common import 上网, ml_danbooru标签, safe_name, 服务器地址, check_model, 图像相似度,WD_tagger,aesthetic_predictor,longclip_iANDt
 
-image_path = "/Users/naganuma/rimo_random_mix/img"
+parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+image_path = f"{parent_dir}/img"
 要测的模型 = [
     ("4thTailHentaiModel_03","sdxl_vae_fp16fix.safetensors"),
     ("aniease_v10","sdxl_vae_fp16fix.safetensors"),
