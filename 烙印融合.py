@@ -29,7 +29,7 @@ from 评测多标签 import 评测模型
 allSteps = 200 #計算回数
 save = 200 #何回に一回保存するか
 save_last = 0 #最後の何個を保存するか
-模型文件夹 = '/Users/naganuma/rimo_random_mix/stable-diffusion-webui-forge/models/Stable-diffusion' #モデル保存場所
+模型文件夹 = './stable-diffusion-webui/models/Stable-diffusion' #モデル保存場所
 #再開用
 
 def setup_parser() -> argparse.ArgumentParser:
