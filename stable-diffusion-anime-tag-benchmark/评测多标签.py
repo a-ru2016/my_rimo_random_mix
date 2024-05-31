@@ -8,8 +8,9 @@ import glob
 import orjson
 from PIL import Image
 from tqdm import tqdm
+import numpy as np
 
-from common import 上网, ml_danbooru标签, safe_name, 服务器地址, check_model, 图像相似度, 参数相同,WD_tagger
+from common import 上网, ml_danbooru标签, safe_name, 服务器地址, check_model, 图像相似度,WD_tagger,aesthetic_predictor,longclip_iANDt
 
 image_path = "/Users/naganuma/rimo_random_mix/img"
 要测的模型 = [
@@ -34,8 +35,8 @@ width = 768
 height = 1024
 cfg_scale = 7
 
-存图文件夹 = Path('out_多标签')
-存图文件夹.mkdir(exist_ok=True)
+output_path = Path('out_多标签')
+output_path.mkdir(exist_ok=True)
 
 #check_model(要测的模型)
 
@@ -47,23 +48,18 @@ else:
     记录 = []
 
 
-def 评测模型(model, VAE, m, n_iter, use_tqdm=True, savedata=True, extra_prompt='', seed=1, tags_seed=0, 计算相似度=True):
-    #rd = random.Random(tags_seed)
+def 评测模型(model, VAE,  use_tqdm=True, savedata=True, extra_prompt='', seed=1, tags_seed=0):
     本地记录 = []
-    iterator = range(n_iter)
+    path_list = glob.glob(image_path+"/*.jpg")
+    path_list.extend(glob.glob(image_path+"/*.png"))
     if use_tqdm:
         iterator = tqdm(iterator, ncols=70, desc=f'{m}-{model[:10]}')
-    for index in iterator:
-        #标签组 = rd.sample(要测的标签, m)
-        #标签组 = [i.strip().replace(' ', '_') for i in 标签组]
-        path_list = glob.glob(image_path+"/*.jpg")
-        path_list.append(glob.glob(image_path+"/*.png"))
-        path_list = path_list[index]
-        tag,character_res_in = WD_tagger(path_list)
-        标签组 = [k for k in tag.keys()]
-        参数 = {
-            'prompt': f'score_9, score_8_up, score_7_up, source_anime, {", ".join(标签组)}'+extra_prompt,
-            'negative_prompt': 'worst quality, low quality, blurry, greyscale, monochrome,source_furry, source_pony, source_cartoon, score_5_up, score_4_up',
+    for test_img in path_list:
+        tag_in,character_res_in = WD_tagger(test_img)
+        tag_in_key = [k for k in tag_in.keys()]#プロンプトのリスト
+        setting = {
+            'prompt': f'score_9, score_8_up, score_7_up, source_anime, {", ".join(tag_in_key)}'+extra_prompt,
+            'negative_prompt': 'negativeXL_D,unaestheticXL_AYv1,worst quality,unaestheticXL_Sky3.1,unaestheticXLv1,unaestheticXLv31, low quality, blurry, greyscale, monochrome,source_furry, source_pony, source_cartoon, score_5_up, score_4_up',
             'seed': seed,
             'width': width,
             'height': height,
@@ -76,52 +72,52 @@ def 评测模型(model, VAE, m, n_iter, use_tqdm=True, savedata=True, extra_prom
                 'CLIP_stop_at_last_layers': 2,
             },
         }
-        skip = False
-        for i in 记录:
-            if i['标签组'] == 标签组 and 参数相同(i['参数'], 参数):
-                skip = True
-                break
-        if skip:
-            本地记录.append(i)
-            continue
-        数量参数 = {
+        数量setting = {
             'batch_size': 1,
             'n_iter': 1,
         }
-        r = 上网(f'{服务器地址}/sdapi/v1/txt2img', 数量参数 | 参数, 'post')
+        r = 上网(f'{服务器地址}/sdapi/v1/txt2img', 数量setting | setting, 'post')#t2i
         图s = [base64.b64decode(b64) for b64 in r['images']]
-        md5 = hashlib.md5(str(标签组).encode()).hexdigest()
+        md5 = hashlib.md5(str(tag_in_key).encode()).hexdigest()
         png_name = safe_name(f'{[j for j in character_res_in.keys()]}_{model}-{md5}')
         extension = ".png"
-        for i, b in enumerate(图s):
-            with open(存图文件夹 / f"{png_name}_{i}{extension}", 'wb') as f:
+        for i, b in enumerate(图s):#save
+            with open(output_path / f"{png_name}{extension}", 'wb') as f:
                 f.write(b)
-        n = len(图s)
-        for i in range(n):
-            预测标签,character_res_out = WD_tagger(存图文件夹 / f"{png_name}_{i}{extension}")
-
-        tmp = [预测标签.get(j, 0) for j in 标签组]
-        tmp.extend([character_res_out.get(j,0) for j in character_res_in.keys()])
+        
+        tag_out,character_res_out = WD_tagger(f"{output_path}/{png_name}{extension}")#score
+        WD = 0
+        for i in tag_in_key:
+            if tag_out.get(i):
+                WD += 1/len(tag_in_key)
+            else:
+                WD += -1/len(tag_in_key)
+        for i in character_res_in.keys():
+            if character_res_out.get(i):
+                WD += 1/len(tag_in_key)
+            else:
+                WD += -1/len(tag_in_key)
+        aesthetic_score = float(aesthetic_predictor(f"{output_path}/{png_name}{extension}"))/10
+        longclip_score = float(longclip_iANDt(Image.open(f"{output_path}/{png_name}{extension}"),setting["prompt"]))
+        
         录 = {
-            '分数': tmp,
-            '总数': n,
-            '标签组': 标签组,
-            '参数': 参数,
+            'WD': WD,
+            'aesthetic': aesthetic_score,
+            'longclip': longclip_score,
+            'setting': setting,
         }
-        if 计算相似度:
-            相似度 = []
-            for a, b in itertools.pairwise([Image.open(存图文件夹 / f"{png_name}_{i}{extension}") for i in range(n)]):
-                相似度.append(图像相似度(a, b))
-            录['相似度'] = 相似度
-
         本地记录.append(录)
-        记录.append(录)
+        
+    acc = 0
+    for i in ["WD","aesthetic","longclip"]:
+        tmp = 0
+        for dd in 本地记录:
+            tmp += (dd[i])
+        acc += tmp/len(path_list)
+    acc = acc/3
+    
     if savedata:
         with open('savedata/记录_多标签.json', 'wb') as f:
-            f.write(orjson.dumps(记录))
-    return 本地记录
+            f.write(orjson.dumps(本地记录))
+    return acc
 
-
-if __name__ == '__main__':
-    for (model, VAE), (m, n_iter) in tqdm([*itertools.product(要测的模型, ((2, 110), (4, 100), (8, 90), (16, 80), (32, 70), (64, 60), (128, 50)))]):
-        评测模型(model, VAE, m, n_iter)
