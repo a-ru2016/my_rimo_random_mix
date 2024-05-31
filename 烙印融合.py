@@ -20,28 +20,35 @@ from urllib.parse import urlencode
 from urllib.request import urlopen, Request
 
 sys.path.append(os.path.join(os.path.dirname(__file__), './stable-diffusion-anime-tag-benchmark'))
-from common import 上网, 服务器地址,load_api
+from common import 上网, 服务器地址,load_api,get_platform
 from 评测多标签 import 评测模型
 
-allSteps = 300 #計算回数
-save = 400 #何回に一回保存するか
-save_last = 1 #最後の何個を保存するか
-seed = 777
+#todo
+#自然言語プロンプトをつける
+
+allSteps = 200 #計算回数
+save = 200 #何回に一回保存するか
+save_last = 0 #最後の何個を保存するか
 模型文件夹 = '/Users/naganuma/rimo_random_mix/stable-diffusion-webui-forge/models/Stable-diffusion' #モデル保存場所
-model_num = 3 #モデル個数
 #再開用
-text_file = "" #/log内のmerge_logファイル
-save_steps = 0 #再開するステップ
-save_only = False
 
 def setup_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "datasets_repo",
-        help="user name/repository name ユーザー名/リポジトリ名")
+        "model_num",
+        type=int,
+        help="マージするモデル数")
     parser.add_argument(
-        "auth_token",
-        help="write token 書き込みトークン")
+        "--seed",
+        type=int,
+        default = 777,
+        help="huggingface user name/repository name ユーザー名/リポジトリ名")
+    parser.add_argument(
+        "--datasets_repo",
+        help="huggingface user name/repository name ユーザー名/リポジトリ名")
+    parser.add_argument(
+        "--auth_token",
+        help="huggingface write token 書き込みトークン")
     parser.add_argument(
         "--ver",
         default="XL",
@@ -50,6 +57,18 @@ def setup_parser() -> argparse.ArgumentParser:
         '--amp',
         default="fp16",
         help='計算精度[fp16,fp32]')
+    parser.add_argument(
+        "-s","--save_steps",
+        default="0",
+        help='再開するステップ')
+    parser.add_argument(
+        "-f",'--text_file',
+        default="",
+        help='再開させたいファイル名.txt')
+    parser.add_argument(
+        "-o",'--save_only',
+        action='store_true',
+        help='一度だけ計算して保存する')
     return parser
 parser = setup_parser()
 args = parser.parse_args()
@@ -57,10 +76,15 @@ if args.amp=="fp16":
     amp = np.float16
 else:
     amp = np.float32
+model_num = args.model_num
+text_file = args.text_file
+save_steps = args.save_steps
+save_only = args.save_only
+seed = args.seed
 datasets_repo = args.datasets_repo
 auth_token = args.auth_token
-commit_message = "烙印融合.py" #メッセージ
-
+commit_message = "烙印融合.py" #アップロード時に書き込むメッセージ
+this_os,startup_file,device = get_platform()
 def load_model(filename):
     data = load_file(filename)
     for k, v in data.items():
@@ -105,12 +129,12 @@ def 融合识别(s: str) -> str:
         if s.startswith(v):
             n = s.removeprefix(v)
             return f'{k}_{n}'
-    return 'r'
+    return 'r' #全部のキーをマージすることになってるからどうにかして
 
 os.makedirs(模型文件夹+"/output",exist_ok = True)
 os.makedirs("log",exist_ok = True)
-记录文件名 = f'log/Record{int(time.time())}.txt'
-记录 = []
+test_name_log = f'log/Record{int(time.time())}.txt'
+log = []
 merge_log_name = f'log/merge_log{int(time.time())}.txt'
 merge_log = []
 steps = 0
@@ -141,7 +165,7 @@ for k in all_params:
 
 def 烙(**kw):
     global steps#初期化
-    文件名 = 名字(kw)
+    test_name = 名字(kw)
     新模型 = {k: 0 for k in all_k}
     old_kw = {k: 0 for k in kw.keys()}
     for i in range(model_num):#merge
@@ -154,20 +178,16 @@ def 烙(**kw):
                 weighted_sum = model[i][k] * 0
                 old_kw[f'{qk}_{i+1}'] = old_kw[f'{qk}_{i}']
             新模型[k] += weighted_sum.astype(np.float16)
-    file_path = f'{模型文件夹}/output/{文件名}.safetensors'#save
+    file_path = f'{模型文件夹}/output/{test_name}.safetensors'#save
     save_file(新模型, file_path)
     del 新模型
     load_api('/sdapi/v1/refresh-checkpoints', method='POST')
-    结果 = 评测模型(文件名, 'sdxl_vae_fp16fix.safetensors', 32, n_iter=3, use_tqdm=False, savedata=False, seed=seed, tags_seed=seed, 计算相似度=False)
+    acc = 评测模型(test_name, 'sdxl_vae_fp16fix.safetensors', use_tqdm=False, savedata=False, seed=seed, tags_seed=seed)#結果
     load_api('/sdapi/v1/server-restart',method='POST')#webui再起動
-    m = np.array([]) #loss
-    for dd in 结果:
-        m = np.append(m, dd['分数'])
-    acc = (m > 0.001).sum() / len(m.flatten())
     steps += 1 #log
     print(f"Naw steps is {steps}")
-    记录.append({
-        '文件名': 文件名,
+    log.append({
+        'test_name': test_name,
         'acc': acc,
         'steps': steps,
     })
@@ -175,21 +195,22 @@ def 烙(**kw):
         'steps': steps,
         'merge': kw,
     })
-    print(文件名, acc, m.shape)
-    with open(记录文件名, 'w', encoding='utf8') as f:
-        json.dump(记录, f, indent=2)
+    print(test_name, acc)#, m.shape)
+    with open(test_name_log, 'w', encoding='utf8') as f:
+        json.dump(log, f, indent=2)
     with open(merge_log_name, 'w', encoding='utf8') as f:
         json.dump(merge_log, f, indent=2)
     if allSteps==1:
         pass
     elif steps % save == 0 or steps >= allSteps - save_last:#upload
-        upload_file(file_path,auth_token)
+        if auth_token and datasets_repo:
+            upload_file(file_path,auth_token)
     else:
         os.remove(file_path)
     return acc
 
 if not save_only:
-    subprocess.run(["open", "-a","terminal",re.sub("models/Stable-diffusion","",模型文件夹)+"webui.sh"])
+    subprocess.run(["open", "-a","terminal",re.sub("models/Stable-diffusion","",模型文件夹)+startup_file])
     optimizer = BayesianOptimization(
         f=烙,
         pbounds={k: p[k] for k in all_params},
@@ -203,7 +224,7 @@ if not save_only:
     )
     print("done")
 elif save_only:
-    subprocess.run(["open", "-a","terminal",re.sub("models/Stable-diffusion","",模型文件夹)+"webui.sh"])
+    subprocess.run(["open", "-a","terminal",re.sub("models/Stable-diffusion","",模型文件夹)+startup_file])
     save_last = 1
     allSteps = 1
     烙(**{k: s[k] for k in all_params})
