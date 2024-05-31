@@ -1,36 +1,54 @@
+# これは何？
+
+stable diffsionモデルをkeyごとに数値を変えて自動でいい感じにマージしてくれるよ
+
+マージしすぎると壊れるよ
+
+sdxlのみ検証したよ
+
+なんかあったらissuesに書いてね
+
 # 使用方法
 
-a1111 webuiを入れてモデルも入れる(forgeも可)
+コマンドは基本my_rimo_random_mix/で行う
 
-a1111 webuiのwebui-user.batのCOMMANDLINE_ARGSに--api --api-server-stopを付ける
+venvを作る
 
-a1111 webuiでtaesdを使うように設定する
+venvの中でpip install -r requirements.txt
 
-烙印融合.pyに以下を設定する
+my_rimo_random_mix/にstable-diffusion-webuiを入れてモデルも入れる(forgeも可,フォルダ名をstable-diffusion-webuiにする)
 
-模型文件夹にwebuiのモデルが入っている場所を指定する
+Embeddingを入れて使う場合は、评测多标签.pyでnegative_promptと検索してその横にEmbeddingの名前を入れる(もちろんモデルも入れる)
 
-model_numに使うモデル数を指定する(多すぎるとエラーが出てしまうので調整しましょう。２以上じゃないと動かないぞ！)
+my_rimo_random_mix/にLong-CLIPを入れてモデルも入れる
 
-text_file,save_stepsを設定(初めから学習する場合はtext_fileを""にする)
+stable-diffusion-webuiのwebui-user.batのCOMMANDLINE_ARGSに--api --api-server-stopを付ける(macはwebui-user.sh)
 
-学習に使いたい画像が入ったフォルダを评测多标签.pyのimage_pathに指定する(画像枚数==3==n_iter)
+stable-diffusion-webuiでtaesdを使うように設定する(オプション、早くなるので推奨)
 
-下をターミナルに打つ
- 
-python3 烙印融合.py あなたのhuggingfaceのユーザー名/あなたのhuggingfaceのリポジトリ名 あなたのhuggingfaceのwriteトークン
+学習に使いたい画像をimgファイルに入れる
+
+venvの中でpython3 烙印融合.py マージするモデル数の数字(多すぎるとエラーが出てしまうので調整しましょう。２以上じゃないと動かないぞ！)
 
 ひたすら待つ
 
-# 変更したもの
+なんかあったらissuesに書いて
 
-烙印融合.pyのみ使用可能
+# ステップの途中を保存する方法
+
+python3 烙印融合.py マージするモデル数の数字　-s　保存したいステップ数 -f 再開させたいmerge_logファイル.txt -o
+
+わからないことがあったらpython3 烙印融合.py -hを使うと幸せになれるかもしれない
+
+# 変更したもの
 
 fp16に対応
 
-huggingfaceアップロードをしてローカルのメモリ消費を抑えるようにした
+ステップの途中から再開できる
 
-モデル数が何個でも良くなった
+ステップの途中を保存できる
+
+huggingfaceアップロードをできるようにした
 
 バグ修正
 
@@ -44,7 +62,13 @@ logファイルを生成するようにした
 
 WaifuDiffusion_Taggerを使うようにした
 
+long-clipを使うようにした
+
+aesthetic_predictor_v2_5を使うようにした
+
 実際の画像からタグを取得するようにした
+
+mac,windows対応(windows未検証)
 
 # 莉沫酱的随机融合模型！
 
