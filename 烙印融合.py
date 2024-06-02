@@ -7,6 +7,9 @@ import ast
 
 import numpy as np
 from bayes_opt import BayesianOptimization
+from bayes_opt.logger import JSONLogger
+from bayes_opt.event import Events
+from bayes_opt.util import load_logs
 from safetensors.numpy import load_file, save_file
 import glob
 import argparse
@@ -62,11 +65,15 @@ def setup_parser() -> argparse.ArgumentParser:
         default="0",
         help='再開するステップ')
     parser.add_argument(
-        "-f",'--text_file',
+        "-m",'--merge_log_file',
         default="",
-        help='再開させたいファイル名.txt')
+        help='merge_log再開させたいファイル名の数字.txt、logからモデルを保存するときに')
     parser.add_argument(
-        "-o",'--save_only',
+        "-o",'--optimizer_file',
+        default="",
+        help='optimizer再開させたいファイル名の数字.txt、学習を再開する時に')
+    parser.add_argument(
+        '--save_only',
         action='store_true',
         help='一度だけ計算して保存する')
     return parser
@@ -77,7 +84,8 @@ if args.amp=="fp16":
 else:
     amp = np.float32
 model_num = args.model_num
-text_file = args.text_file
+merge_log_file = args.merge_log_file
+optimizer_file = args.optimizer_file
 save_steps = args.save_steps
 save_only = args.save_only
 seed = args.seed
@@ -137,14 +145,15 @@ test_name_log = f'log/Record{int(time.time())}.txt'
 log = []
 merge_log_name = f'log/merge_log{int(time.time())}.txt'
 merge_log = []
+optimizer_log_name = f'log/optimizer{int(time.time())}.txt'
 steps = 0
 识别结果 = set([融合识别(k) for k in all_k])
 all_params = []
 for i in range(model_num):
     all_params.extend([f"{k}_{i}" for k in 识别结果])
 
-if text_file:
-    with open(f"./log/{text_file}") as f:
+if merge_log_file:
+    with open(f"./log/{merge_log_file}") as f:
         s = f.read()
         s = ast.literal_eval(s)
         s = s[save_steps-1]["merge"]
@@ -218,6 +227,10 @@ if not save_only:
         #verbose=2.
     )
     optimizer.probe(params={k: s[k] for k in all_params})
+    if optimizer_file:
+        load_logs(new_optimizer, logs=[optimizer_file]);
+    logger = JSONLogger(path=optimizer_log_name)
+    optimizer.subscribe(Events.OPTIMIZATION_STEP, logger)
     optimizer.maximize(
         init_points=4,
         n_iter=allSteps,
