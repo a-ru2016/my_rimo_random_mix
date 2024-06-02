@@ -60,7 +60,7 @@ def 评测模型(model, VAE,  use_tqdm=True, savedata=True, extra_prompt='', see
         tag_in,character_res_in = WD_tagger(test_img)
         tag_in_key = [k for k in tag_in.keys()]#プロンプトのリスト
         setting = {
-            'prompt': f'score_9, score_8_up, score_7_up, source_anime, {", ".join(tag_in_key)}'+extra_prompt,
+            'prompt': f'1girl,{", ".join(tag_in_key)},score_9, score_8_up, score_7_up, source_anime, '+extra_prompt,
             'negative_prompt': 'negativeXL_D,unaestheticXL_AYv1,worst quality,unaestheticXL_Sky3.1,unaestheticXLv1,unaestheticXLv31, low quality, blurry, greyscale, monochrome,source_furry, source_pony, source_cartoon, score_5_up, score_4_up',
             'seed': seed,
             'width': width,
